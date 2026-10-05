@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+langgraph
+langchain-core
+langchain-litellm
+litellm
+python-dotenv
+supabase
+bcrypt
+PyJWT
+google-genai
+pypdf
