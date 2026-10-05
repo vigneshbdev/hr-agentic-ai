@@ -4,6 +4,13 @@ An enterprise-oriented **HR Assistant powered by Agentic AI** that enables emplo
 
 The application combines **LangGraph, Gemini, Retrieval-Augmented Generation (RAG), PostgreSQL/pgvector, and HR data tools** to answer policy questions, retrieve employee-specific information, calculate leave requirements, validate leave requests, and submit leave applications.
 
+## 🚀 Live Demo
+
+**HR Copilot:**  
+https://pixel-perfect-render-8298.lovable.app/
+
+The application provides an authenticated conversational interface for interacting with the HR Agent.
+
 ---
 
 ## Overview
@@ -100,18 +107,6 @@ The agent can retrieve information belonging to the authenticated employee, incl
 - Department
 - Joining date
 
-Example:
-
-```text
-User:
-What is my joining date?
-
-Agent:
-Your joining date is June 15, 2020.
-```
-
-Employee-specific tools receive the authenticated employee ID from the application state rather than allowing the language model to choose an employee ID.
-
 ---
 
 ### 🏖️ Leave Balance
@@ -125,31 +120,11 @@ Supported leave information includes:
 - Sick Leave
 - Other configured leave types
 
-Example:
-
-```text
-User:
-How many earned leave days do I have?
-
-Agent:
-You currently have 12 earned leave days available.
-```
-
 ---
 
 ### 📅 Leave Calculation
 
 The application provides a dedicated calculation tool for determining leave duration.
-
-For example:
-
-```text
-User:
-How many days are there from October 10 to October 14?
-
-Agent:
-The leave period is 5 calendar days.
-```
 
 The calculation is performed deterministically by the application rather than relying on the language model to perform date arithmetic.
 
@@ -159,16 +134,6 @@ The calculation is performed deterministically by the application rather than re
 
 The agent can check whether an employee satisfies the configured leave eligibility criteria.
 
-For example:
-
-```text
-User:
-Am I eligible for leave?
-
-Agent:
-You are eligible based on your employment duration.
-```
-
 Eligibility is evaluated using employee information stored in the database.
 
 ---
@@ -176,16 +141,6 @@ Eligibility is evaluated using employee information stored in the database.
 ### 🔎 Leave Validation
 
 Before submitting a leave request, the application can validate whether the employee has sufficient leave balance.
-
-Example:
-
-```text
-User:
-Can I take 5 days of earned leave?
-
-Agent:
-You have 12 earned leave days available, so 5 days can be requested.
-```
 
 The validation is performed through a backend tool against the employee's actual leave balance.
 
@@ -195,20 +150,6 @@ The validation is performed through a backend tool against the employee's actual
 
 Employees can explicitly request the agent to submit a leave request.
 
-Example:
-
-```text
-User:
-Submit 5 days of earned leave from October 10 to October 14.
-
-Agent:
-Your leave request has been submitted successfully.
-Request ID: 123
-Status: Pending
-```
-
-The request is stored in the `leave_requests` table with a `Pending` status.
-
 The submission tool validates:
 
 - Leave type
@@ -216,6 +157,8 @@ The submission tool validates:
 - Date range
 - Available leave balance
 - Authenticated employee identity
+
+The request is stored in the `leave_requests` table with a `Pending` status.
 
 ---
 
@@ -231,20 +174,6 @@ The assistant can provide information such as:
 - End date
 - Status
 - Request creation time
-
-Example:
-
-```text
-User:
-Show my leave requests.
-
-Agent:
-You have the following leave requests:
-
-#123 — Earned Leave
-Oct 10–Oct 14
-Status: Pending
-```
 
 ---
 
@@ -269,8 +198,6 @@ Can I use 5 of them?
 Agent:
 Yes. You have sufficient earned leave balance for 5 days.
 ```
-
-The second question can be interpreted using the context established by the first interaction.
 
 ---
 
@@ -363,36 +290,6 @@ Final Response
 ```
 
 This allows the agent to perform multi-step operations when required.
-
-For example, a leave-related request may involve:
-
-```text
-User Request
-     ↓
-Calculate Leave Duration
-     ↓
-Retrieve Leave Balance
-     ↓
-Validate Requested Leave
-     ↓
-Generate Response
-```
-
-For a policy question:
-
-```text
-User Question
-     ↓
-Policy Search Tool
-     ↓
-Vector Similarity Search
-     ↓
-Relevant Policy Chunks
-     ↓
-Gemini
-     ↓
-Policy-Based Response
-```
 
 ---
 
@@ -503,8 +400,6 @@ Stores processed HR policy chunks and their vector embeddings.
 
 The backend requires environment variables for external services and authentication.
 
-Example:
-
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
@@ -533,8 +428,6 @@ cd hr-agentic-ai
 python -m venv .venv
 ```
 
-Activate it:
-
 ### Linux / macOS
 
 ```bash
@@ -555,14 +448,7 @@ pip install -r requirements.txt
 
 ## 4. Configure environment variables
 
-Create a `.env` file:
-
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-GEMINI_API_KEY=your_gemini_api_key
-JWT_SECRET=your_jwt_secret
-```
+Create a `.env` file with the required configuration.
 
 ## 5. Start the backend
 
@@ -582,12 +468,6 @@ API documentation:
 http://localhost:8000/docs
 ```
 
-Health check:
-
-```text
-GET /health
-```
-
 ---
 
 # Example API Flow
@@ -598,26 +478,6 @@ GET /health
 POST /auth/login
 ```
 
-Request:
-
-```json
-{
-  "email": "employee@company.com",
-  "password": "password"
-}
-```
-
-Response:
-
-```json
-{
-  "access_token": "<JWT_TOKEN>",
-  "token_type": "bearer"
-}
-```
-
----
-
 ### Ask the HR Agent
 
 ```http
@@ -625,13 +485,11 @@ POST /agent
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-Example:
+### Health Check
 
-```text
-How many earned leave days do I have?
+```http
+GET /health
 ```
-
-The agent determines the appropriate tool, retrieves the required information, and generates the final response.
 
 ---
 
@@ -659,76 +517,7 @@ The Supabase service-role key is used only by the backend and must never be expo
 
 ---
 
-# Example Agent Interactions
-
-### Employee Information
-
-```text
-User:
-What department am I working in?
-
-Agent:
-You are part of the Engineering department.
-```
-
-### Leave Balance
-
-```text
-User:
-How much earned leave do I have?
-
-Agent:
-You currently have 12 earned leave days available.
-```
-
-### Policy
-
-```text
-User:
-How many earned leave days can I carry forward?
-
-Agent:
-According to the HR policy, up to 30 earned leave days can be carried forward.
-```
-
-### Leave Validation
-
-```text
-User:
-Can I take 5 days of earned leave?
-
-Agent:
-Yes. You currently have sufficient earned leave balance for 5 days.
-```
-
-### Leave Submission
-
-```text
-User:
-Submit earned leave from October 10 to October 14.
-
-Agent:
-Your leave request has been submitted successfully.
-
-Request ID: 123
-Status: Pending
-```
-
-### Leave History
-
-```text
-User:
-Show my leave requests.
-
-Agent:
-Here are your recent leave requests...
-```
-
----
-
 # Design Principles
-
-The application follows several principles to keep the agent reliable and maintainable:
 
 ### Tool-Based Actions
 
