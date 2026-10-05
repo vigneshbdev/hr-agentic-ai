@@ -6,6 +6,35 @@ from langgraph.prebuilt import InjectedState
 
 from app.db.supabase import supabase
 
+@tool
+def get_leave_requests(
+    employee_id: Annotated[int, InjectedState("employee_id")],
+) -> list[dict]:
+    """
+    Get the authenticated employee's leave requests.
+
+    Use this tool when the employee asks about:
+    - their leave request history
+    - submitted leave requests
+    - pending leave requests
+    - approved or rejected leave requests
+    - the status of a leave request
+
+    Never use this tool to retrieve another employee's requests.
+    """
+
+    response = (
+        supabase
+        .table("leave_requests")
+        .select(
+            "id, leave_type, start_date, end_date, status, created_at"
+        )
+        .eq("employee_id", employee_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return response.data
 
 @tool
 def submit_leave_request(
