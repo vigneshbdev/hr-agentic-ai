@@ -32,14 +32,17 @@ def verify_password(
         password_hash.encode('utf-8')
     )
 
-def create_access_token(employee_id: int) -> str:
-    expires_at = (
-        datetime.now(timezone.utc)
-        + timedelta(minutes=JWT_EXPIRATION_MINUTES)
+def create_access_token(
+    employee_id: int,
+    role: str,
+) -> str:
+    expires_at = datetime.now(timezone.utc) + timedelta(
+        minutes=JWT_EXPIRATION_MINUTES
     )
 
     payload = {
         "sub": str(employee_id),
+        "role": role,
         "exp": expires_at,
     }
 

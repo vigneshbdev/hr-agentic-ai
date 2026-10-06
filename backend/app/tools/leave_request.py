@@ -149,3 +149,240 @@ def submit_leave_request(
         "status": "Pending",
         "remaining_balance": available_balance - requested_days,
     }
+
+@tool
+def get_pending_leave_requests(
+    role: Annotated[str, InjectedState("role")],
+) -> list[dict]:
+    """
+    Get all pending leave requests for HR review.
+
+    This tool is restricted to HR users.
+    Use it when an HR user asks to see pending,
+    awaiting approval, or unprocessed leave requests.
+    """
+
+    if role != "hr":
+        return {
+            "error": "Unauthorized. HR access is required."
+        }
+
+    response = (
+        supabase
+        .table("leave_requests")
+        .select(
+            "id, employee_id, leave_type, "
+            "start_date, end_date, status, created_at"
+        )
+        .eq("status", "Pending")
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    requests = response.data or []
+
+    if not requests:
+        return {
+            "message": "There are no pending leave requests."
+        }
+
+    employee_ids = list({
+        request["employee_id"]
+        for request in requests
+    })
+
+    employees_response = (
+        supabase
+        .table("employees")
+        .select(
+            "id, employee_code, name, email, department"
+        )
+        .in_("id", employee_ids)
+        .execute()
+    )
+
+    employees = {
+        employee["id"]: employee
+        for employee in (employees_response.data or [])
+    }
+
+    result = []
+
+    for request in requests:
+        employee = employees.get(request["employee_id"], {})
+
+        result.append({
+            "request_id": request["id"],
+            "employee_id": request["employee_id"],
+            "employee_code": employee.get("employee_code"),
+            "employee_name": employee.get("name"),
+            "department": employee.get("department"),
+            "leave_type": request["leave_type"],
+            "start_date": request["start_date"],
+            "end_date": request["end_date"],
+            "status": request["status"],
+            "created_at": request["created_at"],
+        })
+
+    return result
+
+@tool
+def approve_leave_request(
+    request_id: int,
+    role: Annotated[str, InjectedState("role")],
+) -> dict:
+    """
+    Approve a pending employee leave request.
+
+    This tool is restricted to HR users.
+    Use only when an HR user explicitly asks to approve
+    a specific leave request.
+    """
+
+    if role != "hr":
+        return {
+            "success": False,
+            "error": "Unauthorized. HR access is required.",
+        }
+
+    # Check that the request exists
+    response = (
+        supabase
+        .table("leave_requests")
+        .select(
+            "id, employee_id, leave_type, "
+            "start_date, end_date, status"
+        )
+        .eq("id", request_id)
+        .single()
+        .execute()
+    )
+
+    request = response.data
+
+    if not request:
+        return {
+            "success": False,
+            "error": f"Leave request {request_id} was not found.",
+        }
+
+    # Prevent approving an already processed request
+    if request["status"] != "Pending":
+        return {
+            "success": False,
+            "error": (
+                f"Leave request {request_id} is already "
+                f"{request['status']}."
+            ),
+        }
+
+    # Approve the request
+    update_response = (
+        supabase
+        .table("leave_requests")
+        .update({"status": "Approved"})
+        .eq("id", request_id)
+        .eq("status", "Pending")
+        .execute()
+    )
+
+    if not update_response.data:
+        return {
+            "success": False,
+            "error": "Unable to approve the leave request.",
+        }
+
+    return {
+        "success": True,
+        "request_id": request_id,
+        "employee_id": request["employee_id"],
+        "leave_type": request["leave_type"],
+        "start_date": request["start_date"],
+        "end_date": request["end_date"],
+        "status": "Approved",
+    }
+
+
+@tool
+def reject_leave_request(
+    request_id: int,
+    reason: str,
+    role: Annotated[str, InjectedState("role")],
+) -> dict:
+    """
+    Reject a pending employee leave request.
+
+    This tool is restricted to HR users.
+    Use only when an HR user explicitly asks to reject
+    a specific leave request.
+    A rejection reason is required.
+    """
+
+    if role != "hr":
+        return {
+            "success": False,
+            "error": "Unauthorized. HR access is required.",
+        }
+
+    if not reason.strip():
+        return {
+            "success": False,
+            "error": "A rejection reason is required.",
+        }
+
+    response = (
+        supabase
+        .table("leave_requests")
+        .select(
+            "id, employee_id, leave_type, "
+            "start_date, end_date, status"
+        )
+        .eq("id", request_id)
+        .single()
+        .execute()
+    )
+
+    request = response.data
+
+    if not request:
+        return {
+            "success": False,
+            "error": f"Leave request {request_id} was not found.",
+        }
+
+    if request["status"] != "Pending":
+        return {
+            "success": False,
+            "error": (
+                f"Leave request {request_id} is already "
+                f"{request['status']}."
+            ),
+        }
+
+    update_response = (
+        supabase
+        .table("leave_requests")
+        .update({
+            "status": "Rejected",
+        })
+        .eq("id", request_id)
+        .eq("status", "Pending")
+        .execute()
+    )
+
+    if not update_response.data:
+        return {
+            "success": False,
+            "error": "Unable to reject the leave request.",
+        }
+
+    return {
+        "success": True,
+        "request_id": request_id,
+        "employee_id": request["employee_id"],
+        "leave_type": request["leave_type"],
+        "start_date": request["start_date"],
+        "end_date": request["end_date"],
+        "status": "Rejected",
+        "reason": reason,
+    }

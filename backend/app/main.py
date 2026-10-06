@@ -9,7 +9,7 @@ from app.agent.state import HRAgentState
 from app.agent.graph import hr_agent
 from app.agent.memory import get_conversation, save_conversation
 from app.auth.service import authenticate_employee
-from app.auth.dependencies import get_current_employee
+from app.auth.dependencies import get_current_user
 
 
 app = FastAPI(
@@ -37,8 +37,11 @@ def health():
 def run_agent(
     message: str,
     conversation_id: str | None = None,
-    employee_id: int = Depends(get_current_employee),
+    employee_id: int = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
+    employee_id = current_user["employee_id"]
+    role = current_user["role"]
     # Create a new conversation if one was not provided
     if not conversation_id:
         conversation_id = str(uuid4())
@@ -49,16 +52,18 @@ def run_agent(
     if existing_state:
         state = existing_state
 
+        state["employee_id"] = employee_id
+        state["role"] = role
+
         state["messages"].append(
             HumanMessage(content=message)
         )
 
     else:
         state: HRAgentState = {
-            "messages": [
-                HumanMessage(content=message)
-            ],
+            "messages": [HumanMessage(content=message)],
             "employee_id": employee_id,
+            "role": role,
             "intent": None,
             "tool_results": [],
             "final_response": None,
