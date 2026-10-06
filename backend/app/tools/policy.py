@@ -3,15 +3,26 @@ from langchain_core.tools import tool
 from app.db.supabase import supabase
 from app.rag.embeddings import generate_embedding
 
+
 @tool
 def search_hr_policy(query: str) -> list[dict]:
     """
-    Search the HR policy documents for information relevant to the employee's question.
+    Search HR policy documents for information relevant to the employee's question.
 
-    Use this tool when the employee asks about company policies,
-    leave rules, eligibility, approvals, working hours, benefits,
-    holidays, or other HR policy-related information.
+    Use this tool when the employee asks about:
+    - HR policies
+    - leave rules
+    - leave eligibility
+    - leave approval
+    - working hours
+    - benefits
+    - holidays
+    - other HR policy-related information
+
+    Returns relevant policy content together with source information
+    that can be used to cite the policy in the final response.
     """
+
     query_embedding = generate_embedding(query)
 
     response = supabase.rpc(
@@ -22,4 +33,18 @@ def search_hr_policy(query: str) -> list[dict]:
         },
     ).execute()
 
-    return response.data
+    results = response.data or []
+
+    citations = []
+
+    for result in results:
+        metadata = result.get("metadata") or {}
+
+        citations.append({
+            "content": result.get("content"),
+            "source": result.get("document_name"),
+            "chunk_index": metadata.get("chunk_index"),
+            "similarity": result.get("similarity"),
+        })
+
+    return citations

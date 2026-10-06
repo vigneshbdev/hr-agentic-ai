@@ -65,10 +65,48 @@ def run_agent(
 
     final_message = result["messages"][-1]
 
+    citations = []
+    seen_sources = set()
+
+    for message in result["messages"]:
+        if getattr(message, "type", None) != "tool":
+            continue
+
+        if getattr(message, "name", None) != "search_hr_policy":
+            continue
+
+        tool_result = message.content
+
+        if isinstance(tool_result, str):
+            try:
+                import json
+                tool_result = json.loads(tool_result)
+            except json.JSONDecodeError:
+                tool_result = []
+
+        if not isinstance(tool_result, list):
+            continue
+
+        for item in tool_result:
+            if not isinstance(item, dict):
+                continue
+
+            source = item.get("source")
+
+            if not source or source in seen_sources:
+                continue
+
+            seen_sources.add(source)
+
+            citations.append({
+                "source": source
+            })
+
     return {
         "response": final_message.content,
         "employee_id": employee_id,
         "conversation_id": conversation_id,
+        "citations": citations,
     }
 
 class LoginRequest(BaseModel):
