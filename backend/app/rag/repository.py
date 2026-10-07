@@ -20,3 +20,26 @@ def insert_policy_chunk(
     )
 
     return response.data
+
+
+def search_policy(
+    query_embedding: list[float],
+    match_count: int = 5,
+):
+    """
+    Search HR policy documents using vector similarity.
+    """
+
+    response = (
+        supabase
+        .rpc(
+            "match_policy_documents",
+            {
+                "query_embedding": query_embedding,
+                "match_count": match_count,
+            },
+        )
+        .execute()
+    )
+
+    return response.data or []

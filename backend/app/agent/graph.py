@@ -9,6 +9,7 @@ from app.tools.policy import search_hr_policy
 from app.tools.eligibility import check_leave_eligibility
 from app.tools.calculation import calculate_leave_days
 from app.tools.leave_validation import validate_leave_request
+from app.tools.wfh import get_wfh_usage, check_wfh_eligibility
 from app.tools.leave_request import submit_leave_request, get_leave_requests, get_pending_leave_requests, approve_leave_request, reject_leave_request
 
 from app.llm.client import llm
@@ -25,7 +26,9 @@ tools = [
     submit_leave_request,
     get_pending_leave_requests,
     approve_leave_request,
-    reject_leave_request
+    reject_leave_request,
+    get_wfh_usage,
+    check_wfh_eligibility
 ]
 
 llm_with_tools = llm.bind_tools(tools)
